@@ -10,7 +10,7 @@ if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
 $post_id = $_GET['id'];
 
 // Consultar el post y la información del autor
-$query = "SELECT posts.*, users.username 
+$query = "SELECT posts.*, users.username, users.profile_photo 
           FROM posts 
           JOIN users ON posts.user_id = users.id 
           WHERE posts.id = ?";
@@ -84,6 +84,25 @@ $comments = $stmt->fetchAll();
                         <?php endif; ?>
                         
                         <!-- Información del autor y fecha -->
+                        <!-- la foto -->
+                        <div class="d-flex align-items-center mb-4">
+                            <?php if ($post['profile_photo']): ?>
+                                <img src="<?php echo htmlspecialchars($post['profile_photo']); ?>" 
+                                    alt="Foto de <?php echo htmlspecialchars($post['username']); ?>"
+                                    class="rounded-circle me-2"
+                                    style="width: 40px; height: 40px; object-fit: cover;">
+                            <?php else: ?>
+                                <img src="img/default-profile.png" 
+                                    alt="Foto de perfil por defecto"
+                                    class="rounded-circle me-2"
+                                    style="width: 40px; height: 40px; object-fit: cover;">
+                            <?php endif; ?>
+                            <div class="text-muted">
+                                Por <?php echo htmlspecialchars($post['username']); ?> - 
+                                <?php echo date('d/m/Y H:i', strtotime($post['created_at'])); ?>
+                            </div>
+                        </div>
+                        
                         <div class="text-muted mb-4">
                             Por <?php echo htmlspecialchars($post['username']); ?> - 
                             <?php echo date('d/m/Y H:i', strtotime($post['created_at'])); ?>

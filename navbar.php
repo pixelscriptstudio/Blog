@@ -1,5 +1,13 @@
 <?php
 require_once 'init.php';
+// Solo intentar obtener la foto de perfil si el usuario está logueado
+if (isset($_SESSION['user_id'])) {
+    $stmt = $pdo->prepare("SELECT profile_photo FROM users WHERE id = ?");
+    $stmt->execute([$_SESSION['user_id']]);
+    $userNav = $stmt->fetch(PDO::FETCH_ASSOC);
+} else {
+    $userNav = null;
+}
 ?>
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container">
@@ -17,8 +25,19 @@ require_once 'init.php';
                         <a class="nav-link" href="crear_articulo.php">Crear Artículo</a>
                     </li>
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            Bienvenido, <?php echo htmlspecialchars($_SESSION['username']); ?>
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                            <?php if (isset($userNav['profile_photo']) && !empty($userNav['profile_photo']) && file_exists($userNav['profile_photo'])): ?>
+                                <img src="<?php echo htmlspecialchars($userNav['profile_photo']); ?>" 
+                                    alt="Perfil" 
+                                    class="rounded-circle"
+                                    style="width: 30px; height: 30px; object-fit: cover;">
+                            <?php else: ?>
+                                <img src="img/default-profile.webp" 
+                                    alt="Perfil" 
+                                    class="rounded-circle"
+                                    style="width: 30px; height: 30px; object-fit: cover;">
+                            <?php endif; ?>
+                            Mi Cuenta
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
                             <li><a class="dropdown-item" href="profile.php">Mi Perfil</a></li>
