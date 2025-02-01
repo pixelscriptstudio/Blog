@@ -19,10 +19,24 @@ if (!$post_id) {
     exit();
 }
 
+// Verificar si el usuario es admin
+$stmt = $pdo->prepare("SELECT is_admin FROM users WHERE id = ?");
+$stmt->execute([$_SESSION['user_id']]);
+$user = $stmt->fetch();
+$is_admin = $user['is_admin'] ?? false;
+
 // Obtener el post y verificar permisos
 try {
-    $stmt = $pdo->prepare("SELECT * FROM posts WHERE id = ? AND user_id = ?");
-    $stmt->execute([$post_id, $_SESSION['user_id']]);
+    // Si es admin, puede editar cualquier post
+    if ($is_admin) {
+        $stmt = $pdo->prepare("SELECT * FROM posts WHERE id = ?");
+        $stmt->execute([$post_id]);
+    } else {
+        // Si no es admin, solo puede editar sus propios posts
+        $stmt = $pdo->prepare("SELECT * FROM posts WHERE id = ? AND user_id = ?");
+        $stmt->execute([$post_id, $_SESSION['user_id']]);
+    }
+    
     $post = $stmt->fetch();
 
     if (!$post) {
@@ -126,13 +140,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             if (!empty($button_link) && !filter_var($button_link, FILTER_VALIDATE_URL)) {
                 throw new Exception('Por favor ingrese una URL válida para el botón');
             }
-            
-            $coupon = trim($_POST['coupon'] ?? '');
-            $stmt = $pdo->prepare("UPDATE posts SET title = ?, content = ?, content_second = ?, middle_image = ?, featured_image = ?, youtube_url = ?, button_text = ?, button_link = ?, coupon = ? WHERE id = ? AND user_id = ?");
-            $stmt->execute([$title, $content, $content_second, $middle_image, $featured_image, $youtube_url, $button_text, $button_link, $coupon, $post_id, $_SESSION['user_id']]);
-            
+
+            if ($is_admin) {
+                $coupon = trim($_POST['coupon'] ?? '');
+                $stmt = $pdo->prepare("UPDATE posts SET title = ?, content = ?, content_second = ?, middle_image = ?, featured_image = ?, youtube_url = ?, button_text = ?, button_link = ?, coupon = ? WHERE id = ?");
+                $stmt->execute([$title, $content, $content_second, $middle_image, $featured_image, $youtube_url, $button_text, $button_link, $coupon, $post_id]);
+            } else {
+                $stmt = $pdo->prepare("UPDATE posts SET title = ?, content = ?, content_second = ?, middle_image = ?, featured_image = ?, youtube_url = ?, button_text = ?, button_link = ?, coupon = ? WHERE id = ? AND user_id = ?");
+                $stmt->execute([$title, $content, $content_second, $middle_image, $featured_image, $youtube_url, $button_text, $button_link, $coupon, $post_id, $_SESSION['user_id']]);
+            }
+    
             $success = 'Artículo actualizado exitosamente';
-            // Redireccionar después de 2 segundos
             header("refresh:2;url=post.php?id=" . $post_id);
         } catch (Exception $e) {
             $error = $e->getMessage();

@@ -92,7 +92,7 @@ $comments = $stmt->fetchAll();
                                     class="rounded-circle me-2"
                                     style="width: 40px; height: 40px; object-fit: cover;">
                             <?php else: ?>
-                                <img src="img/default-profile.png" 
+                                <img src="img/default-profile.webp" 
                                     alt="Foto de perfil por defecto"
                                     class="rounded-circle me-2"
                                     style="width: 40px; height: 40px; object-fit: cover;">

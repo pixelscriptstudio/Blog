@@ -37,11 +37,20 @@ require_once 'config/database.php';
         <div class="row">
             <!-- Lista de Posts -->
             <?php
-            // Modificamos la consulta para incluir la foto de perfil
+            // Primero verificamos si es admin
+            $is_admin = false;
+            if (isset($_SESSION['user_id'])) {
+                $admin_check = $pdo->prepare("SELECT is_admin FROM users WHERE id = ?");
+                $admin_check->execute([$_SESSION['user_id']]);
+                $user = $admin_check->fetch();
+                $is_admin = $user['is_admin'] ?? false;
+            }
+
+            // Luego hacemos la consulta de los posts
             $query = "SELECT posts.*, users.username, users.profile_photo 
-                     FROM posts 
-                     JOIN users ON posts.user_id = users.id 
-                     ORDER BY created_at DESC";
+                    FROM posts 
+                    JOIN users ON posts.user_id = users.id 
+                    ORDER BY created_at DESC";
             $stmt = $pdo->query($query);
             
             while($post = $stmt->fetch()) {
@@ -78,7 +87,7 @@ require_once 'config/database.php';
                             </p>
                             <div class="mt-3">
                                 <a href="post.php?id=<?php echo $post['id']; ?>" class="btn btn-primary">Leer más</a>
-                                <?php if (isset($_SESSION['user_id']) && $post['user_id'] == $_SESSION['user_id']): ?>
+                                <?php if (isset($_SESSION['user_id']) && ($post['user_id'] == $_SESSION['user_id'] || $is_admin)): ?>
                                     <a href="editar_articulo.php?id=<?php echo $post['id']; ?>" class="btn btn-warning ms-2">Editar</a>
                                     <a href="eliminar_articulo.php?id=<?php echo $post['id']; ?>" class="btn btn-danger ms-2">Eliminar</a>
                                 <?php endif; ?>
