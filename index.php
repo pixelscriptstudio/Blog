@@ -69,7 +69,7 @@ require_once 'config/database.php';
                                          style="width: 40px; height: 40px; object-fit: cover;">
                                 <?php endif; ?>
                                 <div class="text-muted">
-                                    Por <?php echo htmlspecialchars($post['username']); ?> - 
+                                    <?php echo htmlspecialchars($post['username']); ?> - 
                                     <?php echo date('d/m/Y', strtotime($post['created_at'])); ?>
                                 </div>
                             </div>

@@ -211,11 +211,9 @@ $userData = [
                                     <h5><?= htmlspecialchars($post['title']) ?></h5>
                                     <p class="text-muted">Publicado el <?= date('d/m/Y', strtotime($post['created_at'])) ?></p>
                                     <div>
-                                        <a href="post.php?id=<?= $post['id'] ?>" class="btn btn-sm btn-info">Ver</a>
-                                        <a href="edit_post.php?id=<?= $post['id'] ?>" class="btn btn-sm btn-warning">Editar</a>
-                                        <a href="delete_post.php?id=<?= $post['id'] ?>" 
-                                           class="btn btn-sm btn-danger" 
-                                           onclick="return confirm('¿Estás seguro?')">Eliminar</a>
+                                        <a href="post.php?id=<?php echo $post['id']; ?>" class="btn btn-primary">Ver</a>
+                                        <a href="editar_articulo.php?id=<?php echo $post['id']; ?>" class="btn btn-warning ms-2">Editar</a>
+                                        <a href="eliminar_articulo.php?id=<?php echo $post['id']; ?>" class="btn btn-danger ms-2">Eliminar</a>
                                     </div>
                                 </div>
                             <?php endforeach; ?>

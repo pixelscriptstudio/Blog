@@ -98,14 +98,9 @@ $comments = $stmt->fetchAll();
                                     style="width: 40px; height: 40px; object-fit: cover;">
                             <?php endif; ?>
                             <div class="text-muted">
-                                Por <?php echo htmlspecialchars($post['username']); ?> - 
+                                <?php echo htmlspecialchars($post['username']); ?> - 
                                 <?php echo date('d/m/Y H:i', strtotime($post['created_at'])); ?>
                             </div>
-                        </div>
-                        
-                        <div class="text-muted mb-4">
-                            Por <?php echo htmlspecialchars($post['username']); ?> - 
-                            <?php echo date('d/m/Y H:i', strtotime($post['created_at'])); ?>
                         </div>
                         
                         <!-- Primer párrafo -->
