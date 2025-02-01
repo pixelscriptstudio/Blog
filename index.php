@@ -1,4 +1,5 @@
 <?php
+require_once 'init.php';
 require_once 'config/database.php';
 
 $posts_per_page = 2; // Número de posts por página
@@ -77,6 +78,16 @@ $stmt->execute();
             <div class="row">
                 <!-- Lista de Posts -->
                 <?php
+                $query = "SELECT posts.*, users.username, users.profile_photo 
+                    FROM posts 
+                    JOIN users ON posts.user_id = users.id 
+                    ORDER BY created_at DESC
+                    LIMIT :limit OFFSET :offset";
+                $stmt = $pdo->prepare($query);
+                $stmt->bindValue(':limit', $posts_per_page, PDO::PARAM_INT);
+                $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+                $stmt->execute();
+                
                 $posts = $stmt->fetchAll(PDO::FETCH_ASSOC);
                 foreach($posts as $post) {
                     ?>
