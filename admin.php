@@ -262,6 +262,7 @@ $comments = $pdo->query("
                                                     <td><?php echo date('d/m/Y', strtotime($post['created_at'])); ?></td>
                                                     <td>
                                                         <a href="post.php?id=<?php echo $post['id']; ?>" class="btn btn-sm btn-info">Ver</a>
+                                                        <a href="editar_articulo.php?id=<?php echo $post['id']; ?>" class="btn btn-sm btn-warning">Editar</a>
                                                         <form method="POST" style="display: inline;">
                                                             <input type="hidden" name="post_id" value="<?php echo $post['id']; ?>">
                                                             <button type="submit" name="delete_post" class="btn btn-sm btn-danger" 
@@ -292,7 +293,7 @@ $comments = $pdo->query("
                                         <tr>
                                             <th>Comentario</th>
                                             <th>Post</th>
-                                            <th>Autor del Post</th>
+                                            <th>Autor</th>
                                             <th>Fecha</th>
                                             <th>Acciones</th>
                                         </tr>
