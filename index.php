@@ -1,3 +1,8 @@
+<?php
+// index.php
+require_once 'config/database.php';
+?>
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -8,29 +13,27 @@
     <link href="css/styles.css" rel="stylesheet">
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container">
-            <a class="navbar-brand" href="index.php">Mi Blog</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="index.php">Inicio</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="login.php">Iniciar Sesión</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="register.php">Registrarse</a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
+    <?php include 'navbar.php'; ?>
 
     <div class="container mt-4">
+        
+        <?php if (isset($_SESSION['success'])): ?>
+        <div class="alert alert-success">
+            <?php 
+            echo $_SESSION['success']; 
+            unset($_SESSION['success']);
+            ?>
+        </div>
+        <?php endif; ?>
+        <?php if (isset($_SESSION['error'])): ?>
+            <div class="alert alert-danger">
+                <?php 
+                echo $_SESSION['error']; 
+                unset($_SESSION['error']);
+                ?>
+            </div>
+        <?php endif; ?>
+
         <div class="row">
             <!-- Lista de Posts -->
             <?php
@@ -45,19 +48,28 @@
             while($post = $stmt->fetch()) {
             ?>
                 <div class="col-md-8 mb-4">
-                    <div class="card">
-                        <div class="card-body">
-                            <h5 class="card-title"><?php echo htmlspecialchars($post['title']); ?></h5>
-                            <h6 class="card-subtitle mb-2 text-muted">
-                                Por <?php echo htmlspecialchars($post['username']); ?> - 
-                                <?php echo date('d/m/Y', strtotime($post['created_at'])); ?>
-                            </h6>
-                            <p class="card-text">
-                                <?php echo nl2br(htmlspecialchars(substr($post['content'], 0, 200))); ?>...
-                            </p>
-                            <a href="post.php?id=<?php echo $post['id']; ?>" class="btn btn-primary">Leer más</a>
-                        </div>
+                <div class="card">
+                    <?php if ($post['featured_image']): ?>
+                        <img src="<?php echo htmlspecialchars($post['featured_image']); ?>" 
+                            class="card-img-top" 
+                            alt="Imagen de portada">
+                    <?php endif; ?>
+                    <div class="card-body">
+                        <h5 class="card-title"><?php echo htmlspecialchars($post['title']); ?></h5>
+                        <h6 class="card-subtitle mb-2 text-muted">
+                            Por <?php echo htmlspecialchars($post['username']); ?> - 
+                            <?php echo date('d/m/Y', strtotime($post['created_at'])); ?>
+                        </h6>
+                        <p class="card-text">
+                            <?php echo nl2br(htmlspecialchars(substr($post['content'], 0, 200))); ?>...
+                        </p>
+                        <a href="post.php?id=<?php echo $post['id']; ?>" class="btn btn-primary">Leer más</a>
+                        <?php if (isset($_SESSION['user_id']) && $post['user_id'] == $_SESSION['user_id']): ?>
+                            <a href="editar_articulo.php?id=<?php echo $post['id']; ?>" class="btn btn-warning ms-2">Editar</a>
+                            <a href="eliminar_articulo.php?id=<?php echo $post['id']; ?>" class="btn btn-danger ms-2">Eliminar</a>
+                        <?php endif; ?>
                     </div>
+                </div>
                 </div>
             <?php } ?>
         </div>
