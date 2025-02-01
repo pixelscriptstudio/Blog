@@ -34,7 +34,19 @@ require_once 'config/database.php';
             </div>
         <?php endif; ?>
 
-        <div class="row">
+        <div class="mb-4">
+            <input type="text" 
+                id="searchInput" 
+                class="form-control" 
+                placeholder="Buscar por título, contenido o autor...">
+            <div id="searchSpinner" class="text-center mt-3 d-none">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Cargando...</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="row" id="postsContainer">
             <!-- Lista de Posts -->
             <?php
             // Primero verificamos si es admin
@@ -100,5 +112,45 @@ require_once 'config/database.php';
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+let searchTimeout;
+
+document.getElementById('searchInput').addEventListener('input', function(e) {
+    const searchTerm = e.target.value.trim();
+    const postsContainer = document.getElementById('postsContainer');
+    const spinner = document.getElementById('searchSpinner');
+    
+    // Limpiar el timeout anterior
+    clearTimeout(searchTimeout);
+    
+    if (searchTerm === '') {
+        spinner.classList.add('d-none');
+        window.location.reload();
+        return;
+    }
+    
+    // Mostrar el spinner
+    spinner.classList.remove('d-none');
+    
+    // Agregar un pequeño delay para evitar muchas peticiones
+    searchTimeout = setTimeout(() => {
+        fetch(`search.php?q=${encodeURIComponent(searchTerm)}`)
+            .then(response => response.text())
+            .then(html => {
+                spinner.classList.add('d-none');
+                if (html.trim() === '') {
+                    postsContainer.innerHTML = '<div class="col-12 text-center"><p>No se encontraron resultados</p></div>';
+                } else {
+                    postsContainer.innerHTML = html;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                spinner.classList.add('d-none');
+                postsContainer.innerHTML = '<div class="col-12 text-center"><p>Ocurrió un error al buscar</p></div>';
+            });
+    }, 300); // Esperar 300ms antes de hacer la búsqueda
+});
+</script>
 </body>
 </html>
