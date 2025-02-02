@@ -13,6 +13,11 @@ $success = '';
 // Configurar PDO
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
+// Configuración de paginación
+$posts_per_page = 2;
+$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+$offset = ($page - 1) * $posts_per_page;
+
 // Obtener datos del usuario
 try {
     $stmt = $pdo->prepare("SELECT * FROM users WHERE id = :user_id");
@@ -31,43 +36,47 @@ try {
 
 // Procesar actualización de foto de perfil
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['profile_photo'])) {
-    $file = $_FILES['profile_photo'];
-    $allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
-    $maxSize = 5 * 1024 * 1024; // 5MB
-
-    if (!getimagesize($file['tmp_name'])) {
-        $error = 'El archivo no es una imagen válida';
-    } elseif (!in_array($file['type'], $allowedTypes)) {
-        $error = 'Solo se permiten archivos JPG, PNG y GIF';
-    } elseif ($file['size'] > $maxSize) {
-        $error = 'El archivo no debe superar los 5MB';
+    if ($_FILES['profile_photo']['error'] === UPLOAD_ERR_NO_FILE) {
+        $error = 'Por favor, selecciona una imagen para subir';
     } else {
-        $uploadDir = 'uploads/profiles/';
-        if (!file_exists($uploadDir)) {
-            mkdir($uploadDir, 0755, true);
-        }
+        $file = $_FILES['profile_photo'];
+        $allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+        $maxSize = 5 * 1024 * 1024; // 5MB
 
-        $fileExtension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-        $fileName = uniqid() . '.' . $fileExtension;
-        $targetPath = str_replace('\\', '/', $uploadDir . $fileName);
-
-        if (move_uploaded_file($file['tmp_name'], $targetPath)) {
-            if (!empty($user['profile_photo']) && 
-                file_exists($user['profile_photo']) && 
-                strpos($user['profile_photo'], 'default-profile.webp') === false) {
-                unlink($user['profile_photo']);
-            }
-
-            $stmt = $pdo->prepare("UPDATE users SET profile_photo = ? WHERE id = ?");
-            if ($stmt->execute([$targetPath, $_SESSION['user_id']])) {
-                $success = 'Foto de perfil actualizada correctamente';
-                $user['profile_photo'] = $targetPath;
-            } else {
-                $error = 'Error al actualizar la base de datos';
-                unlink($targetPath);
-            }
+        if (!getimagesize($file['tmp_name'])) {
+            $error = 'El archivo no es una imagen válida';
+        } elseif (!in_array($file['type'], $allowedTypes)) {
+            $error = 'Solo se permiten archivos JPG, PNG y GIF';
+        } elseif ($file['size'] > $maxSize) {
+            $error = 'El archivo no debe superar los 5MB';
         } else {
-            $error = 'Error al subir la imagen';
+            $uploadDir = 'uploads/profiles/';
+            if (!file_exists($uploadDir)) {
+                mkdir($uploadDir, 0755, true);
+            }
+
+            $fileExtension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+            $fileName = uniqid() . '.' . $fileExtension;
+            $targetPath = str_replace('\\', '/', $uploadDir . $fileName);
+
+            if (move_uploaded_file($file['tmp_name'], $targetPath)) {
+                if (!empty($user['profile_photo']) && 
+                    file_exists($user['profile_photo']) && 
+                    strpos($user['profile_photo'], 'default-profile.webp') === false) {
+                    unlink($user['profile_photo']);
+                }
+
+                $stmt = $pdo->prepare("UPDATE users SET profile_photo = ? WHERE id = ?");
+                if ($stmt->execute([$targetPath, $_SESSION['user_id']])) {
+                    $success = 'Foto de perfil actualizada correctamente';
+                    $user['profile_photo'] = $targetPath;
+                } else {
+                    $error = 'Error al actualizar la base de datos';
+                    unlink($targetPath);
+                }
+            } else {
+                $error = 'Error al subir la imagen';
+            }
         }
     }
 }
@@ -75,33 +84,57 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_FILES['profile_photo'])) {
 // Procesar actualización del perfil
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_profile'])) {
     $email = filter_var($_POST['email'] ?? '', FILTER_SANITIZE_EMAIL);
+    $username = filter_var($_POST['username'] ?? '', FILTER_SANITIZE_STRING);
     $current_password = $_POST['current_password'] ?? '';
     $new_password = $_POST['new_password'] ?? '';
     
-    if (!empty($current_password)) {
-        if (password_verify($current_password, $user['password'])) {
-            if (!empty($new_password)) {
-                $update_password = password_hash($new_password, PASSWORD_DEFAULT);
-                $stmt = $pdo->prepare("UPDATE users SET email = ?, password = ? WHERE id = ?");
-                $stmt->execute([$email, $update_password, $_SESSION['user_id']]);
-            } else {
-                $stmt = $pdo->prepare("UPDATE users SET email = ? WHERE id = ?");
-                $stmt->execute([$email, $_SESSION['user_id']]);
-            }
-            $success = 'Perfil actualizado correctamente';
-        } else {
-            $error = 'La contraseña actual es incorrecta';
+    // Verificar si el nuevo nombre de usuario ya existe
+    if ($username !== $user['username']) {
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM users WHERE username = ? AND id != ?");
+        $stmt->execute([$username, $_SESSION['user_id']]);
+        if ($stmt->fetchColumn() > 0) {
+            $error = 'El nombre de usuario ya está en uso';
         }
-    } else {
-        $stmt = $pdo->prepare("UPDATE users SET email = ? WHERE id = ?");
-        $stmt->execute([$email, $_SESSION['user_id']]);
-        $success = 'Email actualizado correctamente';
+    }
+    
+    if (empty($error)) {
+        if (!empty($current_password)) {
+            if (password_verify($current_password, $user['password'])) {
+                if (!empty($new_password)) {
+                    $update_password = password_hash($new_password, PASSWORD_DEFAULT);
+                    $stmt = $pdo->prepare("UPDATE users SET email = ?, username = ?, password = ? WHERE id = ?");
+                    $stmt->execute([$email, $username, $update_password, $_SESSION['user_id']]);
+                } else {
+                    $stmt = $pdo->prepare("UPDATE users SET email = ?, username = ? WHERE id = ?");
+                    $stmt->execute([$email, $username, $_SESSION['user_id']]);
+                }
+                $success = 'Perfil actualizado correctamente';
+            } else {
+                $error = 'La contraseña actual es incorrecta';
+            }
+        } else {
+            $stmt = $pdo->prepare("UPDATE users SET email = ?, username = ? WHERE id = ?");
+            $stmt->execute([$email, $username, $_SESSION['user_id']]);
+            $success = 'Perfil actualizado correctamente';
+        }
     }
 }
 
-// Obtener posts del usuario
-$stmt = $pdo->prepare("SELECT * FROM posts WHERE user_id = ? ORDER BY created_at DESC");
+// Obtener total de posts para paginación
+$stmt = $pdo->prepare("SELECT COUNT(*) FROM posts WHERE user_id = ?");
 $stmt->execute([$_SESSION['user_id']]);
+$total_posts = $stmt->fetchColumn();
+$total_pages = ceil($total_posts / $posts_per_page);
+
+// Obtener posts del usuario con paginación
+$stmt = $pdo->prepare("SELECT * FROM posts WHERE user_id = ? ORDER BY created_at DESC LIMIT ?, ?");
+// Cambiamos los parámetros a enteros explícitamente
+$offset = (int)$offset;
+$posts_per_page = (int)$posts_per_page;
+$stmt->bindParam(1, $_SESSION['user_id'], PDO::PARAM_INT);
+$stmt->bindParam(2, $offset, PDO::PARAM_INT);
+$stmt->bindParam(3, $posts_per_page, PDO::PARAM_INT);
+$stmt->execute();
 $posts = $stmt->fetchAll();
 
 // Asegurar que los campos existan
@@ -156,7 +189,7 @@ $userData = [
                             </div>
                             <form method="POST" enctype="multipart/form-data" class="mb-4">
                                 <div class="mb-3">
-                                    <input type="file" class="form-control" name="profile_photo" accept="image/*">
+                                    <input type="file" class="form-control" name="profile_photo" accept="image/*" required>
                                 </div>
                                 <button type="submit" class="btn btn-secondary">Actualizar Foto</button>
                             </form>
@@ -166,9 +199,10 @@ $userData = [
                             <div class="mb-3">
                                 <label>Usuario</label>
                                 <input type="text" 
+                                       name="username"
                                        class="form-control" 
                                        value="<?= htmlspecialchars($userData['username']) ?>" 
-                                       readonly>
+                                       required>
                             </div>
                             <div class="mb-3">
                                 <label>Email</label>
@@ -218,6 +252,23 @@ $userData = [
                                 </div>
                             <?php endforeach; ?>
                         </div>
+                        
+                        <!-- Paginación -->
+                        <?php if ($total_pages > 1): ?>
+                            <div class="d-flex justify-content-between mt-4">
+                                <?php if ($page > 1): ?>
+                                    <a href="?page=<?= $page - 1 ?>" class="btn btn-primary">&larr; Anterior</a>
+                                <?php else: ?>
+                                    <div></div>
+                                <?php endif; ?>
+                                
+                                <?php if ($page < $total_pages): ?>
+                                    <a href="?page=<?= $page + 1 ?>" class="btn btn-primary">Siguiente &rarr;</a>
+                                <?php else: ?>
+                                    <div></div>
+                                <?php endif; ?>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
