@@ -105,34 +105,9 @@ $comments = $stmt->fetchAll();
                         
                         <!-- Primer párrafo -->
                         <div class="card-text mb-4">
-                            <?php echo nl2br(htmlspecialchars($post['content'])); ?>
+                            <?php echo $post['content']; ?>
                         </div>
-                        
-                        <!-- Imagen intermedia -->
-                        <?php if ($post['middle_image']): ?>
-                            <div class="mb-4">
-                                <img src="<?php echo htmlspecialchars($post['middle_image']); ?>" 
-                                     class="img-fluid rounded" 
-                                     alt="Imagen intermedia">
-                            </div>
-                        <?php endif; ?>
-                        
-                        <!-- Segundo párrafo (si existe) -->
-                        <?php if (!empty($post['content_second'])): ?>
-                            <div class="card-text mb-4">
-                                <?php echo nl2br(htmlspecialchars($post['content_second'])); ?>
-                            </div>
-                        <?php endif; ?>
-                        
-                        <!-- Video de YouTube (si existe) -->
-                        <?php if ($post['youtube_url']): ?>
-                            <div class="ratio ratio-16x9 mb-4">
-                                <iframe src="<?php echo htmlspecialchars($post['youtube_url']); ?>" 
-                                        title="YouTube video" 
-                                        allowfullscreen></iframe>
-                            </div>
-                        <?php endif; ?>
-
+                                            
                         <!-- Botón personalizado -->
                         <?php if (!empty($post['button_text']) && !empty($post['button_link'])): ?>
                             <div class="mt-4">

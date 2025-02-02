@@ -28,7 +28,15 @@
                             </div>
                         </div>
                         <p class="card-text">
-                            <?php echo nl2br(htmlspecialchars(substr($post['content'], 0, 200))); ?>...
+                        <?php 
+                            // Si quieres mostrar solo un extracto del contenido:
+                            $content = strip_tags($post['content']); // Elimina las etiquetas HTML
+                            $excerpt = substr($content, 0, 200); // Toma los primeros 200 caracteres
+                            if (strlen($content) > 200) {
+                                $excerpt .= '...';
+                            }
+                            echo $excerpt;
+                            ?>
                         </p>
                         <div class="mt-3">
                             <a href="post.php?id=<?php echo $post['id']; ?>" class="btn btn-primary">Leer más</a>

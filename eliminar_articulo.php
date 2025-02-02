@@ -17,27 +17,31 @@ if (!$post_id) {
 
 // Verificar que el post exista y pertenezca al usuario
 try {
-    $stmt = $pdo->prepare("SELECT user_id FROM posts WHERE id = ?");
-    $stmt->execute([$post_id]);
+    // Obtener información del post antes de eliminarlo
+    $stmt = $pdo->prepare("SELECT featured_image FROM posts WHERE id = ? AND user_id = ?");
+    $stmt->execute([$post_id, $_SESSION['user_id']]);
     $post = $stmt->fetch();
 
-    if (!$post || $post['user_id'] != $_SESSION['user_id']) {
-        $_SESSION['error'] = "No tienes permiso para eliminar este artículo";
-        header('Location: index.php');
-        exit();
+    // Eliminar imágenes asociadas si existen
+    if ($post) {
+        if (!empty($post['featured_image']) && file_exists($post['featured_image'])) {
+            unlink($post['featured_image']);
+        }
     }
 
-    // Si se confirmó la eliminación
-    if (isset($_GET['confirm']) && $_GET['confirm'] == 'yes') {
-        $stmt = $pdo->prepare("DELETE FROM posts WHERE id = ? AND user_id = ?");
-        $stmt->execute([$post_id, $_SESSION['user_id']]);
-        
-        $_SESSION['success'] = "Artículo eliminado exitosamente";
-        header('Location: index.php');
-        exit();
-    }
+    // Eliminar el post
+    $stmt = $pdo->prepare("DELETE FROM posts WHERE id = ? AND user_id = ?");
+    $stmt->execute([$post_id, $_SESSION['user_id']]);
+    
+    // Eliminar comentarios asociados
+    $stmt = $pdo->prepare("DELETE FROM comments WHERE post_id = ?");
+    $stmt->execute([$post_id]);
+    
+    $_SESSION['success'] = "Artículo y sus recursos asociados eliminados exitosamente";
+    header('Location: index.php');
+    exit();
 } catch (PDOException $e) {
-    $_SESSION['error'] = "Error al eliminar el artículo";
+    $_SESSION['error'] = "Error al eliminar el artículo: " . $e->getMessage();
     header('Location: index.php');
     exit();
 }
