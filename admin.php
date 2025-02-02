@@ -13,6 +13,19 @@ if (!isset($_SESSION['user_id']) || !$user || !$user['is_admin']) {
     exit();
 }
 
+// Configuración de paginación
+$items_per_page = 1;
+
+// Obtener página actual para cada sección
+$users_page = isset($_GET['users_page']) ? (int)$_GET['users_page'] : 1;
+$posts_page = isset($_GET['posts_page']) ? (int)$_GET['posts_page'] : 1;
+$comments_page = isset($_GET['comments_page']) ? (int)$_GET['comments_page'] : 1;
+
+// Calcular offset para cada sección
+$users_offset = ($users_page - 1) * $items_per_page;
+$posts_offset = ($posts_page - 1) * $items_per_page;
+$comments_offset = ($comments_page - 1) * $items_per_page;
+
 // Gestión de usuarios y posts
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if (isset($_POST['delete_user'])) {
@@ -87,30 +100,54 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 }
 
-// Obtener estadísticas
+// Obtener total de registros para paginación
 $total_users = $pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
 $total_posts = $pdo->query("SELECT COUNT(*) FROM posts")->fetchColumn();
 $total_comments = $pdo->query("SELECT COUNT(*) FROM comments")->fetchColumn();
 
-// Obtener usuarios
-$users = $pdo->query("SELECT * FROM users ORDER BY created_at DESC")->fetchAll();
+// Calcular total de páginas para cada sección
+$total_users_pages = ceil($total_users / $items_per_page);
+$total_posts_pages = ceil($total_posts / $items_per_page);
+$total_comments_pages = ceil($total_comments / $items_per_page);
 
-// Obtener posts recientes
-$posts = $pdo->query("
+// Obtener usuarios con paginación
+$stmt = $pdo->prepare("SELECT * FROM users ORDER BY created_at DESC LIMIT ? OFFSET ?");
+$stmt->bindValue(1, $items_per_page, PDO::PARAM_INT);
+$stmt->bindValue(2, $users_offset, PDO::PARAM_INT);
+$stmt->execute();
+$users = $stmt->fetchAll();
+
+// Obtener posts con paginación
+$stmt = $pdo->prepare("
     SELECT posts.*, users.username 
     FROM posts 
     JOIN users ON posts.user_id = users.id 
-    ORDER BY posts.created_at DESC
-")->fetchAll();
+    ORDER BY posts.created_at DESC 
+    LIMIT ? OFFSET ?
+");
+$stmt->bindValue(1, $items_per_page, PDO::PARAM_INT);
+$stmt->bindValue(2, $posts_offset, PDO::PARAM_INT);
+$stmt->execute();
+$posts = $stmt->fetchAll();
 
-// Obtener comentarios (modificado para la nueva estructura)
-$comments = $pdo->query("
+// Obtener comentarios con paginación
+$stmt = $pdo->prepare("
     SELECT comments.*, posts.title as post_title, users.username as post_author 
     FROM comments 
     JOIN posts ON comments.post_id = posts.id 
     JOIN users ON posts.user_id = users.id 
-    ORDER BY comments.created_at DESC
-")->fetchAll();
+    ORDER BY comments.created_at DESC 
+    LIMIT ? OFFSET ?
+");
+$stmt->bindValue(1, $items_per_page, PDO::PARAM_INT);
+$stmt->bindValue(2, $comments_offset, PDO::PARAM_INT);
+$stmt->execute();
+$comments = $stmt->fetchAll();
+
+// Obtener estadísticas
+$total_users = $pdo->query("SELECT COUNT(*) FROM users")->fetchColumn();
+$total_posts = $pdo->query("SELECT COUNT(*) FROM posts")->fetchColumn();
+$total_comments = $pdo->query("SELECT COUNT(*) FROM comments")->fetchColumn();
 ?>
 
 <!DOCTYPE html>
@@ -233,6 +270,21 @@ $comments = $pdo->query("
                                         </tbody>
                                     </table>
                                 </div>
+                                <?php if ($total_users_pages > 1): ?>
+                                    <div class="d-flex justify-content-between mt-4">
+                                        <?php if ($users_page > 1): ?>
+                                            <a href="?users_page=<?= $users_page - 1 ?>&tab=users" class="btn btn-primary">&larr; Anterior</a>
+                                        <?php else: ?>
+                                            <div></div>
+                                        <?php endif; ?>
+                                        
+                                        <?php if ($users_page < $total_users_pages): ?>
+                                            <a href="?users_page=<?= $users_page + 1 ?>&tab=users" class="btn btn-primary">Siguiente &rarr;</a>
+                                        <?php else: ?>
+                                            <div></div>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
@@ -276,6 +328,21 @@ $comments = $pdo->query("
                                         </tbody>
                                     </table>
                                 </div>
+                                <?php if ($total_posts_pages > 1): ?>
+                                    <div class="d-flex justify-content-between mt-4">
+                                        <?php if ($posts_page > 1): ?>
+                                            <a href="?posts_page=<?= $posts_page - 1 ?>&tab=posts" class="btn btn-primary">&larr; Anterior</a>
+                                        <?php else: ?>
+                                            <div></div>
+                                        <?php endif; ?>
+                                        
+                                        <?php if ($posts_page < $total_posts_pages): ?>
+                                            <a href="?posts_page=<?= $posts_page + 1 ?>&tab=posts" class="btn btn-primary">Siguiente &rarr;</a>
+                                        <?php else: ?>
+                                            <div></div>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
@@ -319,6 +386,21 @@ $comments = $pdo->query("
                                     </tbody>
                                 </table>
                             </div>
+                            <?php if ($total_comments_pages > 1): ?>
+                                <div class="d-flex justify-content-between mt-4">
+                                    <?php if ($comments_page > 1): ?>
+                                        <a href="?comments_page=<?= $comments_page - 1 ?>&tab=comments" class="btn btn-primary">&larr; Anterior</a>
+                                    <?php else: ?>
+                                        <div></div>
+                                    <?php endif; ?>
+                                    
+                                    <?php if ($comments_page < $total_comments_pages): ?>
+                                        <a href="?comments_page=<?= $comments_page + 1 ?>&tab=comments" class="btn btn-primary">Siguiente &rarr;</a>
+                                    <?php else: ?>
+                                        <div></div>
+                                    <?php endif; ?>
+                                </div>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>
@@ -328,5 +410,22 @@ $comments = $pdo->query("
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Obtener el parámetro 'tab' de la URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const activeTab = urlParams.get('tab');
+        
+        if (activeTab) {
+            // Obtener la pestaña que debe estar activa
+            const tab = document.querySelector(`a[href="#${activeTab}"]`);
+            if (tab) {
+                // Crear una nueva instancia de la pestaña de Bootstrap y activarla
+                const bsTab = new bootstrap.Tab(tab);
+                bsTab.show();
+            }
+        }
+    });
+    </script>
 </body>
 </html>
