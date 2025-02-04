@@ -108,14 +108,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['update_profile'])) {
                     $stmt = $pdo->prepare("UPDATE users SET email = ?, username = ? WHERE id = ?");
                     $stmt->execute([$email, $username, $_SESSION['user_id']]);
                 }
-                $success = 'Perfil actualizado correctamente';
+                $_SESSION['success_message'] = 'Perfil actualizado correctamente';
+                header('Location: profile.php');
+                exit();
             } else {
                 $error = 'La contraseña actual es incorrecta';
             }
         } else {
             $stmt = $pdo->prepare("UPDATE users SET email = ?, username = ? WHERE id = ?");
             $stmt->execute([$email, $username, $_SESSION['user_id']]);
-            $success = 'Perfil actualizado correctamente';
+            $_SESSION['success_message'] = 'Perfil actualizado correctamente';
+            header('Location: profile.php');
+            exit();
         }
     }
 }
@@ -165,6 +169,12 @@ $userData = [
                         <h4>Mi Perfil</h4>
                     </div>
                     <div class="card-body">
+                        <?php if (isset($_SESSION['success_message'])): ?>
+                            <div class="alert alert-success">
+                                <?= htmlspecialchars($_SESSION['success_message']) ?>
+                                <?php unset($_SESSION['success_message']); ?>
+                            </div>
+                        <?php endif; ?>
                         <?php if ($error): ?>
                             <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
                         <?php endif; ?>
