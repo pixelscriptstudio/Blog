@@ -1,6 +1,15 @@
 <?php
 require_once 'config/database.php';
 
+// Primero verificamos si es admin
+$is_admin = false;
+if (isset($_SESSION['user_id'])) {
+    $admin_check = $pdo->prepare("SELECT is_admin FROM users WHERE id = ?");
+    $admin_check->execute([$_SESSION['user_id']]);
+    $user = $admin_check->fetch();
+    $is_admin = $user['is_admin'] ?? false;
+}
+
 // Verificar si se proporcionó un ID
 if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
     header('Location: index.php');
@@ -72,8 +81,15 @@ $comments = $stmt->fetchAll();
                 <!-- Post content -->
                 <div class="card">
                     <div class="card-body">
-                        <h1 class="card-title mb-4"><?php echo htmlspecialchars($post['title']); ?></h1>
-                        
+                    <h1 class="card-title mb-4" style="text-align: center; position: relative;">
+                        <a href="index.php" class="btn btn-outline-secondary btn-sm position-absolute" style="left: 0; top: 0;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-left" viewBox="0 0 16 16">
+                                <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z"/>
+                            </svg>
+                            Volver
+                        </a>
+                        <?php echo htmlspecialchars($post['title']); ?>
+                    </h1>
                         <!-- Imagen de portada -->
                         <?php if ($post['featured_image']): ?>
                             <div class="mb-4">
@@ -130,6 +146,15 @@ $comments = $stmt->fetchAll();
                         <?php endif; ?>
                     </div>
                 </div>
+
+                <?php if (isset($_SESSION['user_id']) && ($post['user_id'] == $_SESSION['user_id'] || $is_admin)): ?>
+                    <div class="mt-3">
+                        <a href="editar_articulo.php?id=<?php echo $post['id']; ?>" class="btn btn-warning">Editar</a>
+                        <a href="eliminar_articulo.php?id=<?php echo $post['id']; ?>" 
+                        class="btn btn-danger ms-2"
+                        onclick="return confirm('¿Estás seguro de que quieres eliminar este artículo?');">Eliminar</a>
+                    </div>
+                <?php endif; ?>
 
                 <!-- Comments section -->
                 <div class="card mt-4">
